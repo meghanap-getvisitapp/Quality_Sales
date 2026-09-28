@@ -1,0 +1,2941 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Visit Health - Sales Call Analyzer</title>
+
+
+    <!-- Transformers.js -->
+
+    <script type="module">
+
+        import {
+            pipeline,
+            env
+        } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
+
+
+        /*
+            We are using a browser-based model.
+
+            The model will be downloaded the first
+            time the user runs the application.
+        */
+
+        env.allowLocalModels = false;
+
+        env.useBrowserCache = true;
+
+
+        /*
+            Make pipeline available to the
+            rest of our JavaScript.
+        */
+
+        window.transformersPipeline = pipeline;
+
+    </script>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f4f7fb;
+
+            color: #1f2937;
+
+        }
+
+
+        header {
+
+            background: white;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            padding:
+                20px 40px;
+
+        }
+
+
+        header h1 {
+
+            margin: 0;
+
+            font-size: 24px;
+
+        }
+
+
+        header p {
+
+            margin-top: 5px;
+
+            margin-bottom: 0;
+
+            color: #6b7280;
+
+        }
+
+
+        .container {
+
+            max-width: 1100px;
+
+            margin:
+                30px auto;
+
+            padding:
+                0 20px;
+
+        }
+
+
+        .card {
+
+            background: white;
+
+            border-radius: 12px;
+
+            padding: 25px;
+
+            margin-bottom: 20px;
+
+            box-shadow:
+                0 2px 10px rgba(0,0,0,0.06);
+
+        }
+
+
+        label {
+
+            display: block;
+
+            font-weight: bold;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        input[type="tel"],
+        input[type="file"] {
+
+            width: 100%;
+
+            padding: 12px;
+
+            border:
+                1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        input:focus {
+
+            outline: none;
+
+            border-color: #2563eb;
+
+        }
+
+
+        .upload-box {
+
+            border:
+                2px dashed #cbd5e1;
+
+            border-radius: 10px;
+
+            padding: 30px;
+
+            text-align: center;
+
+            margin-bottom: 20px;
+
+        }
+
+
+        button {
+
+            border: none;
+
+            border-radius: 8px;
+
+            padding:
+                12px 20px;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            margin-right: 8px;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .primary {
+
+            background: #2563eb;
+
+            color: white;
+
+        }
+
+
+        .secondary {
+
+            background: #e5e7eb;
+
+            color: #111827;
+
+        }
+
+
+        button:disabled {
+
+            opacity: 0.5;
+
+            cursor: not-allowed;
+
+        }
+
+
+        .progress {
+
+            display: none;
+
+            margin-top: 20px;
+
+        }
+
+
+        .progress-bar {
+
+            width: 100%;
+
+            height: 10px;
+
+            background: #e5e7eb;
+
+            border-radius: 10px;
+
+            overflow: hidden;
+
+        }
+
+
+        .progress-fill {
+
+            height: 100%;
+
+            width: 0%;
+
+            background: #2563eb;
+
+            transition:
+                width 0.3s ease;
+
+        }
+
+
+        .status {
+
+            margin-top: 10px;
+
+            color: #4b5563;
+
+            font-size: 14px;
+
+        }
+
+
+        #results {
+
+            display: none;
+
+        }
+
+
+        .rating {
+
+            font-size: 42px;
+
+            font-weight: bold;
+
+            margin:
+                10px 0;
+
+        }
+
+
+        .rating-label {
+
+            color: #6b7280;
+
+        }
+
+
+        .metric-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 15px;
+
+        }
+
+
+        .metric {
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 10px;
+
+            padding: 15px;
+
+        }
+
+
+        .metric-title {
+
+            font-weight: bold;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .metric-score {
+
+            font-size: 22px;
+
+            font-weight: bold;
+
+        }
+
+
+        .analysis-box {
+
+            border-left:
+                4px solid #2563eb;
+
+            padding: 15px;
+
+            background: #f8fafc;
+
+            line-height: 1.6;
+
+        }
+
+
+        textarea {
+
+            width: 100%;
+
+            min-height: 300px;
+
+            resize: vertical;
+
+            border:
+                1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            padding: 15px;
+
+            font-family:
+                Arial,
+                sans-serif;
+
+            line-height: 1.5;
+
+        }
+
+
+        .info {
+
+            background: #eff6ff;
+
+            border:
+                1px solid #bfdbfe;
+
+            padding: 15px;
+
+            border-radius: 8px;
+
+            margin-bottom: 20px;
+
+            color: #1e40af;
+
+            line-height: 1.5;
+
+        }
+
+
+        .price-list {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 8px;
+
+        }
+
+
+        .price-tag {
+
+            background: #ecfdf5;
+
+            color: #047857;
+
+            padding:
+                8px 12px;
+
+            border-radius: 20px;
+
+            font-weight: bold;
+
+        }
+
+
+        .metric-description {
+
+            color: #6b7280;
+
+            font-size: 13px;
+
+            margin-top: 5px;
+
+        }
+
+
+        .section-title {
+
+            margin-top: 0;
+
+        }
+
+
+        @media(max-width: 700px) {
+
+            .metric-grid {
+
+                grid-template-columns: 1fr;
+
+            }
+
+
+            header {
+
+                padding: 20px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>
+        Visit Health - Sales Call Analyzer
+    </h1>
+
+    <p>
+        Transcribe and evaluate salesperson audio recordings
+    </p>
+
+</header>
+
+
+<div class="container">
+
+
+    <!-- INPUT SECTION -->
+
+    <div class="card">
+
+
+        <div class="info">
+
+            <strong>
+                How this works
+            </strong>
+
+            <br>
+
+            Upload the salesperson's MP3 recording.
+
+            The audio will be transcribed in your browser
+            and then evaluated for sales performance,
+            communication and customer handling.
+
+            <br><br>
+
+            <strong>
+                First-time use:
+            </strong>
+
+            The speech recognition model needs to be
+            downloaded the first time. This may take
+            a few minutes depending on your internet
+            connection.
+
+        </div>
+
+
+        <label for="phoneNumber">
+
+            Client Phone Number
+
+        </label>
+
+
+        <input
+            type="tel"
+            id="phoneNumber"
+            placeholder="Enter client phone number"
+        >
+
+
+        <label for="audioFile">
+
+            Sales Call Recording
+
+        </label>
+
+
+        <div class="upload-box">
+
+            <input
+                type="file"
+                id="audioFile"
+                accept=".mp3,audio/mpeg,audio/mp3"
+            >
+
+            <p id="fileName">
+
+                No audio file selected
+
+            </p>
+
+        </div>
+
+
+        <button
+            class="primary"
+            id="analyzeBtn"
+            disabled
+        >
+
+            Analyze Sales Call
+
+        </button>
+
+
+        <div
+            class="progress"
+            id="progress"
+        >
+
+            <div class="progress-bar">
+
+                <div
+                    class="progress-fill"
+                    id="progressFill"
+                >
+                </div>
+
+            </div>
+
+
+            <div
+                class="status"
+                id="status"
+            >
+
+                Preparing...
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- RESULTS -->
+
+    <div id="results">
+
+
+        <!-- CALL INFORMATION -->
+
+        <div class="card">
+
+            <h2 class="section-title">
+
+                Sales Call Summary
+
+            </h2>
+
+
+            <p>
+
+                <strong>
+                    Client Phone:
+                </strong>
+
+                <span id="resultPhone">
+                </span>
+
+            </p>
+
+
+            <p>
+
+                <strong>
+                    Audio File:
+                </strong>
+
+                <span id="resultFile">
+                </span>
+
+            </p>
+
+        </div>
+
+
+
+        <!-- QUALITY -->
+
+        <div class="card">
+
+            <h2>
+                1. Quality Rating
+            </h2>
+
+
+            <div
+                class="rating"
+                id="qualityRating"
+            >
+
+                -
+
+            </div>
+
+
+            <div class="rating-label">
+
+                Overall salesperson call quality
+
+            </div>
+
+
+            <br>
+
+
+            <div class="metric-grid">
+
+
+                <!-- CONVINCING -->
+
+                <div class="metric">
+
+                    <div class="metric-title">
+
+                        Convincing / Persuasion
+
+                    </div>
+
+
+                    <div
+                        class="metric-score"
+                        id="convincingScore"
+                    >
+
+                        -
+
+                    </div>
+
+
+                    <div class="metric-description">
+
+                        Ability to explain benefits
+                        and convince the client.
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- LISTENING -->
+
+                <div class="metric">
+
+                    <div class="metric-title">
+
+                        Listening / Understanding
+
+                    </div>
+
+
+                    <div
+                        class="metric-score"
+                        id="listeningScore"
+                    >
+
+                        -
+
+                    </div>
+
+
+                    <div class="metric-description">
+
+                        Ability to understand
+                        the client's requirement.
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- UPSELLING -->
+
+                <div class="metric">
+
+                    <div class="metric-title">
+
+                        Upselling
+
+                    </div>
+
+
+                    <div
+                        class="metric-score"
+                        id="upsellingScore"
+                    >
+
+                        -
+
+                    </div>
+
+
+                    <div class="metric-description">
+
+                        Ability to introduce
+                        relevant additional services.
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- PRICE -->
+
+                <div class="metric">
+
+                    <div class="metric-title">
+
+                        Price / Value Selling
+
+                    </div>
+
+
+                    <div
+                        class="metric-score"
+                        id="priceScore"
+                    >
+
+                        -
+
+                    </div>
+
+
+                    <div class="metric-description">
+
+                        Ability to justify price
+                        using value and benefits.
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- PROFESSIONALISM -->
+
+                <div class="metric">
+
+                    <div class="metric-title">
+
+                        Professionalism
+
+                    </div>
+
+
+                    <div
+                        class="metric-score"
+                        id="professionalismScore"
+                    >
+
+                        -
+
+                    </div>
+
+
+                    <div class="metric-description">
+
+                        Tone, courtesy and
+                        customer-friendly language.
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- CLOSING -->
+
+                <div class="metric">
+
+                    <div class="metric-title">
+
+                        Closing Ability
+
+                    </div>
+
+
+                    <div
+                        class="metric-score"
+                        id="closingScore"
+                    >
+
+                        -
+
+                    </div>
+
+
+                    <div class="metric-description">
+
+                        Ability to move the
+                        conversation toward booking.
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+
+        <!-- GOOD -->
+
+        <div class="card">
+
+            <h2>
+                2. What Went Good
+            </h2>
+
+
+            <div
+                class="analysis-box"
+                id="wentGood"
+            >
+            </div>
+
+        </div>
+
+
+
+        <!-- BAD -->
+
+        <div class="card">
+
+            <h2>
+                3. What Went Bad
+            </h2>
+
+
+            <div
+                class="analysis-box"
+                id="wentBad"
+            >
+            </div>
+
+        </div>
+
+
+
+        <!-- SALES INFORMATION -->
+
+        <div class="card">
+
+            <h2>
+                Sales Information Detected
+            </h2>
+
+
+            <p>
+
+                <strong>
+                    Prices mentioned:
+                </strong>
+
+            </p>
+
+
+            <div
+                class="price-list"
+                id="prices"
+            >
+            </div>
+
+
+            <br>
+
+
+            <p>
+
+                <strong>
+                    Sales indicators:
+                </strong>
+
+            </p>
+
+
+            <div
+                class="analysis-box"
+                id="salesIndicators"
+            >
+            </div>
+
+        </div>
+
+
+
+        <!-- TRANSCRIPTION -->
+
+        <div class="card">
+
+            <h2>
+                Full Transcription
+            </h2>
+
+
+            <textarea
+                id="transcription"
+                readonly
+            ></textarea>
+
+
+            <br><br>
+
+
+            <button
+                class="secondary"
+                onclick="copyTranscription()"
+            >
+
+                Copy Transcription
+
+            </button>
+
+
+            <button
+                class="secondary"
+                onclick="copyAnalysis()"
+            >
+
+                Copy Analysis
+
+            </button>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+
+/* =====================================================
+   GLOBAL VARIABLES
+===================================================== */
+
+
+let selectedFile = null;
+
+let transcriber = null;
+
+
+
+/* =====================================================
+   FILE SELECTION
+===================================================== */
+
+
+document
+    .getElementById("audioFile")
+    .addEventListener(
+        "change",
+        function(event) {
+
+            selectedFile =
+                event.target.files[0];
+
+
+            if (selectedFile) {
+
+                document
+                    .getElementById("fileName")
+                    .textContent =
+                        selectedFile.name;
+
+
+                document
+                    .getElementById("analyzeBtn")
+                    .disabled =
+                        false;
+
+            }
+
+        }
+    );
+
+
+
+/* =====================================================
+   LOAD WHISPER MODEL
+===================================================== */
+
+
+async function loadWhisper() {
+
+
+    /*
+        Prevent downloading the model again
+        if it has already been loaded.
+    */
+
+    if (transcriber) {
+
+        return transcriber;
+
+    }
+
+
+    updateStatus(
+        "Loading speech recognition model. The first load may take a few minutes..."
+    );
+
+
+    /*
+        IMPORTANT:
+
+        We use whisper-tiny instead of
+        whisper-tiny.en.
+
+        whisper-tiny is the multilingual model.
+
+        We also do NOT pass language/task
+        parameters because that caused the
+        previous error.
+    */
+
+
+    transcriber =
+        await window.transformersPipeline(
+
+            "automatic-speech-recognition",
+
+            "Xenova/whisper-tiny",
+
+            {
+
+                device: "webgpu",
+
+                dtype: "q8"
+
+            }
+
+        );
+
+
+    return transcriber;
+
+}
+
+
+
+/* =====================================================
+   AUDIO DECODING
+===================================================== */
+
+
+async function decodeAudio(file) {
+
+
+    updateStatus(
+        "Reading audio file..."
+    );
+
+
+    const arrayBuffer =
+        await file.arrayBuffer();
+
+
+    const audioContext =
+        new AudioContext();
+
+
+    const audioBuffer =
+        await audioContext.decodeAudioData(
+            arrayBuffer
+        );
+
+
+    const channelCount =
+        audioBuffer.numberOfChannels;
+
+
+    const length =
+        audioBuffer.length;
+
+
+    /*
+        Convert stereo audio to mono.
+    */
+
+
+    const mono =
+        new Float32Array(length);
+
+
+    for (
+        let channel = 0;
+        channel < channelCount;
+        channel++
+    ) {
+
+
+        const channelData =
+            audioBuffer.getChannelData(
+                channel
+            );
+
+
+        for (
+            let i = 0;
+            i < length;
+            i++
+        ) {
+
+            mono[i] +=
+                channelData[i]
+                /
+                channelCount;
+
+        }
+
+    }
+
+
+    /*
+        Whisper expects 16 kHz audio.
+
+        Resample the recording.
+    */
+
+
+    const targetRate =
+        16000;
+
+
+    const ratio =
+        audioBuffer.sampleRate
+        /
+        targetRate;
+
+
+    const newLength =
+        Math.round(
+            length / ratio
+        );
+
+
+    const resampled =
+        new Float32Array(
+            newLength
+        );
+
+
+    for (
+        let i = 0;
+        i < newLength;
+        i++
+    ) {
+
+        const index =
+            Math.floor(
+                i * ratio
+            );
+
+
+        resampled[i] =
+            mono[index] || 0;
+
+    }
+
+
+    return resampled;
+
+}
+
+
+
+/* =====================================================
+   TRANSCRIBE AUDIO
+===================================================== */
+
+
+async function transcribeAudio(file) {
+
+
+    const model =
+        await loadWhisper();
+
+
+    const audio =
+        await decodeAudio(file);
+
+
+    updateProgress(35);
+
+
+    updateStatus(
+        "Transcribing salesperson conversation..."
+    );
+
+
+    /*
+        IMPORTANT:
+
+        No language or task parameter is passed here.
+
+        This fixes the error:
+
+        "Cannot specify task or language for an
+        English-only model..."
+    */
+
+
+    const result =
+        await model(
+
+            audio,
+
+            {
+
+                chunk_length_s: 30,
+
+                stride_length_s: 5
+
+            }
+
+        );
+
+
+    updateProgress(75);
+
+
+    return result.text.trim();
+
+}
+
+
+
+/* =====================================================
+   WORD COUNT
+===================================================== */
+
+
+function countWords(
+    text,
+    words
+) {
+
+
+    let count = 0;
+
+
+    words.forEach(
+        word => {
+
+
+            const regex =
+                new RegExp(
+                    "\\b"
+                    +
+                    word
+                    +
+                    "\\b",
+                    "gi"
+                );
+
+
+            const matches =
+                text.match(regex);
+
+
+            if (matches) {
+
+                count +=
+                    matches.length;
+
+            }
+
+        }
+    );
+
+
+    return count;
+
+}
+
+
+
+/* =====================================================
+   PRICE EXTRACTION
+===================================================== */
+
+
+function extractPrices(text) {
+
+
+    const patterns = [
+
+        /₹\s?[\d,]+(?:\.\d+)?/gi,
+
+        /rs\.?\s?[\d,]+(?:\.\d+)?/gi,
+
+        /rupees?\s?[\d,]+(?:\.\d+)?/gi,
+
+        /INR\s?[\d,]+(?:\.\d+)?/gi
+
+    ];
+
+
+    let prices = [];
+
+
+    patterns.forEach(
+        pattern => {
+
+
+            const matches =
+                text.match(pattern);
+
+
+            if (matches) {
+
+                prices.push(
+                    ...matches
+                );
+
+            }
+
+        }
+    );
+
+
+    return [
+        ...new Set(prices)
+    ];
+
+}
+
+
+
+/* =====================================================
+   SALESPERSON ANALYSIS
+===================================================== */
+
+
+function analyzeSalesperson(text) {
+
+
+    const lower =
+        text.toLowerCase();
+
+
+
+    /* -----------------------------------------------
+       CONVINCING
+    ------------------------------------------------ */
+
+
+    const convincingWords = [
+
+        "benefit",
+
+        "advantage",
+
+        "recommend",
+
+        "suggest",
+
+        "best",
+
+        "suitable",
+
+        "important",
+
+        "because",
+
+        "value",
+
+        "save",
+
+        "discount",
+
+        "offer",
+
+        "health",
+
+        "prevent",
+
+        "screening",
+
+        "included"
+
+    ];
+
+
+    const convincingCount =
+        countWords(
+            text,
+            convincingWords
+        );
+
+
+    let convincingScore;
+
+
+    if (
+        convincingCount >= 8
+    ) {
+
+        convincingScore = 9;
+
+    }
+
+    else if (
+        convincingCount >= 5
+    ) {
+
+        convincingScore = 7;
+
+    }
+
+    else if (
+        convincingCount >= 3
+    ) {
+
+        convincingScore = 5;
+
+    }
+
+    else {
+
+        convincingScore = 3;
+
+    }
+
+
+
+    /* -----------------------------------------------
+       LISTENING
+    ------------------------------------------------ */
+
+
+    const listeningWords = [
+
+        "understand",
+
+        "you mentioned",
+
+        "you said",
+
+        "as you mentioned",
+
+        "your requirement",
+
+        "your concern",
+
+        "may I ask",
+
+        "could you tell me",
+
+        "what are you looking for",
+
+        "I see",
+
+        "got it"
+
+    ];
+
+
+    const listeningCount =
+        countWords(
+            text,
+            listeningWords
+        );
+
+
+    let listeningScore;
+
+
+    if (
+        listeningCount >= 5
+    ) {
+
+        listeningScore = 9;
+
+    }
+
+    else if (
+        listeningCount >= 3
+    ) {
+
+        listeningScore = 7;
+
+    }
+
+    else if (
+        listeningCount >= 1
+    ) {
+
+        listeningScore = 5;
+
+    }
+
+    else {
+
+        listeningScore = 3;
+
+    }
+
+
+
+    /* -----------------------------------------------
+       UPSELLING
+    ------------------------------------------------ */
+
+
+    const upsellWords = [
+
+        "also",
+
+        "additional",
+
+        "add",
+
+        "upgrade",
+
+        "along with",
+
+        "package",
+
+        "another test",
+
+        "additional test",
+
+        "premium",
+
+        "comprehensive",
+
+        "more tests",
+
+        "extra test"
+
+    ];
+
+
+    const upsellCount =
+        countWords(
+            text,
+            upsellWords
+        );
+
+
+    let upsellingScore;
+
+
+    if (
+        upsellCount >= 6
+    ) {
+
+        upsellingScore = 9;
+
+    }
+
+    else if (
+        upsellCount >= 4
+    ) {
+
+        upsellingScore = 7;
+
+    }
+
+    else if (
+        upsellCount >= 2
+    ) {
+
+        upsellingScore = 5;
+
+    }
+
+    else {
+
+        upsellingScore = 3;
+
+    }
+
+
+
+    /* -----------------------------------------------
+       PRICE / VALUE SELLING
+    ------------------------------------------------ */
+
+
+    const prices =
+        extractPrices(text);
+
+
+    const valueWords = [
+
+        "worth",
+
+        "value",
+
+        "benefit",
+
+        "included",
+
+        "discount",
+
+        "saving",
+
+        "save",
+
+        "mrp",
+
+        "offer",
+
+        "package",
+
+        "cost",
+
+        "price"
+
+    ];
+
+
+    const valueCount =
+        countWords(
+            text,
+            valueWords
+        );
+
+
+    let priceScore;
+
+
+    if (
+        prices.length > 0
+        &&
+        valueCount >= 4
+    ) {
+
+        priceScore = 9;
+
+    }
+
+    else if (
+        prices.length > 0
+        &&
+        valueCount >= 2
+    ) {
+
+        priceScore = 7;
+
+    }
+
+    else if (
+        prices.length > 0
+    ) {
+
+        priceScore = 5;
+
+    }
+
+    else {
+
+        priceScore = 3;
+
+    }
+
+
+
+    /* -----------------------------------------------
+       PROFESSIONALISM
+    ------------------------------------------------ */
+
+
+    const rudeWords = [
+
+        "whatever",
+
+        "obviously",
+
+        "you should",
+
+        "you have to",
+
+        "can't you",
+
+        "don't waste",
+
+        "not my problem",
+
+        "listen to me",
+
+        "I already told you"
+
+    ];
+
+
+    const rudeCount =
+        countWords(
+            text,
+            rudeWords
+        );
+
+
+    const courtesyWords = [
+
+        "please",
+
+        "thank you",
+
+        "thanks",
+
+        "certainly",
+
+        "sure",
+
+        "understand",
+
+        "sorry",
+
+        "apologize",
+
+        "welcome"
+
+    ];
+
+
+    const courtesyCount =
+        countWords(
+            text,
+            courtesyWords
+        );
+
+
+    let professionalismScore;
+
+
+    if (
+        rudeCount >= 2
+    ) {
+
+        professionalismScore = 3;
+
+    }
+
+    else if (
+        courtesyCount >= 4
+    ) {
+
+        professionalismScore = 9;
+
+    }
+
+    else if (
+        courtesyCount >= 2
+    ) {
+
+        professionalismScore = 7;
+
+    }
+
+    else {
+
+        professionalismScore = 6;
+
+    }
+
+
+
+    /* -----------------------------------------------
+       CLOSING
+    ------------------------------------------------ */
+
+
+    const closingWords = [
+
+        "shall I book",
+
+        "would you like to book",
+
+        "can I book",
+
+        "shall we proceed",
+
+        "proceed with",
+
+        "book the appointment",
+
+        "confirm the booking",
+
+        "payment",
+
+        "payment link",
+
+        "slot",
+
+        "schedule",
+
+        "when would you like",
+
+        "can we book",
+
+        "would you like to proceed"
+
+    ];
+
+
+    const closingCount =
+        countWords(
+            text,
+            closingWords
+        );
+
+
+    let closingScore;
+
+
+    if (
+        closingCount >= 3
+    ) {
+
+        closingScore = 9;
+
+    }
+
+    else if (
+        closingCount >= 2
+    ) {
+
+        closingScore = 7;
+
+    }
+
+    else if (
+        closingCount >= 1
+    ) {
+
+        closingScore = 5;
+
+    }
+
+    else {
+
+        closingScore = 3;
+
+    }
+
+
+
+    /* -----------------------------------------------
+       OVERALL RATING
+    ------------------------------------------------ */
+
+
+    const overall =
+        Math.round(
+
+            (
+
+                convincingScore
+
+                +
+
+                listeningScore
+
+                +
+
+                upsellingScore
+
+                +
+
+                priceScore
+
+                +
+
+                professionalismScore
+
+                +
+
+                closingScore
+
+            )
+
+            /
+
+            6
+
+        );
+
+
+
+    /* -----------------------------------------------
+       WHAT WENT GOOD
+    ------------------------------------------------ */
+
+
+    let good = [];
+
+
+    if (
+        convincingScore >= 7
+    ) {
+
+        good.push(
+            "The salesperson used benefit and value-oriented language to support the recommendation."
+        );
+
+    }
+
+
+    if (
+        listeningScore >= 7
+    ) {
+
+        good.push(
+            "The salesperson showed signs of understanding or responding to the client's requirements."
+        );
+
+    }
+
+
+    if (
+        upsellingScore >= 7
+    ) {
+
+        good.push(
+            "The salesperson identified opportunities to introduce additional tests, services or package upgrades."
+        );
+
+    }
+
+
+    if (
+        priceScore >= 7
+    ) {
+
+        good.push(
+            "The salesperson discussed price, value, discounts or package benefits rather than only quoting a price."
+        );
+
+    }
+
+
+    if (
+        professionalismScore >= 7
+    ) {
+
+        good.push(
+            "The overall language appears professional and customer-friendly."
+        );
+
+    }
+
+
+    if (
+        closingScore >= 7
+    ) {
+
+        good.push(
+            "The salesperson made a clear attempt to move the conversation toward booking or the next sales step."
+        );
+
+    }
+
+
+    if (
+        good.length === 0
+    ) {
+
+        good.push(
+            "The conversation contained some sales engagement, but there are limited strong positive indicators in the transcript."
+        );
+
+    }
+
+
+
+    /* -----------------------------------------------
+       WHAT WENT BAD
+    ------------------------------------------------ */
+
+
+    let bad = [];
+
+
+    if (
+        convincingScore <= 5
+    ) {
+
+        bad.push(
+            "The salesperson could have provided stronger reasons and benefits to convince the client."
+        );
+
+    }
+
+
+    if (
+        listeningScore <= 5
+    ) {
+
+        bad.push(
+            "There are limited indicators of active listening or explicitly acknowledging the client's requirements."
+        );
+
+    }
+
+
+    if (
+        upsellingScore <= 5
+    ) {
+
+        bad.push(
+            "There appears to be limited structured upselling or cross-selling."
+        );
+
+    }
+
+
+    if (
+        priceScore <= 5
+    ) {
+
+        bad.push(
+            "The salesperson could have explained the price in relation to the value, package benefits or savings more clearly."
+        );
+
+    }
+
+
+    if (
+        professionalismScore <= 5
+    ) {
+
+        bad.push(
+            "Some language may come across as less professional or less customer-friendly."
+        );
+
+    }
+
+
+    if (
+        closingScore <= 5
+    ) {
+
+        bad.push(
+            "The salesperson could have used a clearer closing question or next-step request."
+        );
+
+    }
+
+
+    if (
+        bad.length === 0
+    ) {
+
+        bad.push(
+            "No major weakness was detected by the rule-based analysis. The transcript should still be reviewed for context."
+        );
+
+    }
+
+
+
+    /* -----------------------------------------------
+       SALES INDICATORS
+    ------------------------------------------------ */
+
+
+    let indicators = [];
+
+
+    if (
+        prices.length > 0
+    ) {
+
+        indicators.push(
+            "Price discussion detected."
+        );
+
+    }
+
+    else {
+
+        indicators.push(
+            "No clear price amount was detected."
+        );
+
+    }
+
+
+    if (
+        upsellingScore >= 7
+    ) {
+
+        indicators.push(
+            "Upselling indicators detected."
+        );
+
+    }
+
+
+    if (
+        closingScore >= 7
+    ) {
+
+        indicators.push(
+            "Booking or closing language detected."
+        );
+
+    }
+
+
+    if (
+        lower.includes("discount")
+        ||
+        lower.includes("offer")
+        ||
+        lower.includes("saving")
+    ) {
+
+        indicators.push(
+            "Discount or savings language detected."
+        );
+
+    }
+
+
+    if (
+        rudeCount > 0
+    ) {
+
+        indicators.push(
+            "Potentially negative or rude language detected."
+        );
+
+    }
+
+
+    return {
+
+        overall,
+
+        convincingScore,
+
+        listeningScore,
+
+        upsellingScore,
+
+        priceScore,
+
+        professionalismScore,
+
+        closingScore,
+
+        good,
+
+        bad,
+
+        prices,
+
+        indicators
+
+    };
+
+}
+
+
+
+/* =====================================================
+   DISPLAY RESULTS
+===================================================== */
+
+
+function displayResults(
+
+    phone,
+
+    file,
+
+    transcript,
+
+    analysis
+
+) {
+
+
+    document
+        .getElementById("results")
+        .style.display =
+            "block";
+
+
+    document
+        .getElementById("resultPhone")
+        .textContent =
+            phone || "Not provided";
+
+
+    document
+        .getElementById("resultFile")
+        .textContent =
+            file.name;
+
+
+
+    /* Overall */
+
+    document
+        .getElementById("qualityRating")
+        .textContent =
+            analysis.overall
+            +
+            " / 10";
+
+
+
+    /* Metrics */
+
+    document
+        .getElementById("convincingScore")
+        .textContent =
+            analysis.convincingScore
+            +
+            " / 10";
+
+
+    document
+        .getElementById("listeningScore")
+        .textContent =
+            analysis.listeningScore
+            +
+            " / 10";
+
+
+    document
+        .getElementById("upsellingScore")
+        .textContent =
+            analysis.upsellingScore
+            +
+            " / 10";
+
+
+    document
+        .getElementById("priceScore")
+        .textContent =
+            analysis.priceScore
+            +
+            " / 10";
+
+
+    document
+        .getElementById("professionalismScore")
+        .textContent =
+            analysis.professionalismScore
+            +
+            " / 10";
+
+
+    document
+        .getElementById("closingScore")
+        .textContent =
+            analysis.closingScore
+            +
+            " / 10";
+
+
+
+    /* Good */
+
+    document
+        .getElementById("wentGood")
+        .innerHTML =
+
+            analysis.good
+
+                .map(
+                    item =>
+                        "• " + item
+                )
+
+                .join(
+                    "<br><br>"
+                );
+
+
+
+    /* Bad */
+
+    document
+        .getElementById("wentBad")
+        .innerHTML =
+
+            analysis.bad
+
+                .map(
+                    item =>
+                        "• " + item
+                )
+
+                .join(
+                    "<br><br>"
+                );
+
+
+
+    /* Prices */
+
+    const priceContainer =
+        document.getElementById(
+            "prices"
+        );
+
+
+    priceContainer.innerHTML =
+        "";
+
+
+    if (
+        analysis.prices.length === 0
+    ) {
+
+        priceContainer.innerHTML =
+            "<span>No price detected</span>";
+
+    }
+
+    else {
+
+        analysis.prices.forEach(
+            price => {
+
+
+                const tag =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                tag.className =
+                    "price-tag";
+
+
+                tag.textContent =
+                    price;
+
+
+                priceContainer.appendChild(
+                    tag
+                );
+
+            }
+        );
+
+    }
+
+
+
+    /* Indicators */
+
+    document
+        .getElementById(
+            "salesIndicators"
+        )
+        .innerHTML =
+
+            analysis.indicators
+
+                .map(
+                    item =>
+                        "• " + item
+                )
+
+                .join(
+                    "<br><br>"
+                );
+
+
+
+    /* Transcript */
+
+    document
+        .getElementById(
+            "transcription"
+        )
+        .value =
+            transcript;
+
+
+
+    /* Scroll to results */
+
+    window.scrollTo({
+
+        top:
+            document
+                .getElementById(
+                    "results"
+                )
+                .offsetTop,
+
+        behavior:
+            "smooth"
+
+    });
+
+}
+
+
+
+/* =====================================================
+   ANALYZE BUTTON
+===================================================== */
+
+
+document
+    .getElementById(
+        "analyzeBtn"
+    )
+    .addEventListener(
+
+        "click",
+
+        async function() {
+
+
+            if (
+                !selectedFile
+            ) {
+
+                alert(
+                    "Please select an MP3 recording."
+                );
+
+                return;
+
+            }
+
+
+            const phone =
+                document
+                    .getElementById(
+                        "phoneNumber"
+                    )
+                    .value
+                    .trim();
+
+
+            const button =
+                document
+                    .getElementById(
+                        "analyzeBtn"
+                    );
+
+
+            button.disabled =
+                true;
+
+
+            document
+                .getElementById(
+                    "progress"
+                )
+                .style.display =
+                    "block";
+
+
+            try {
+
+
+                updateProgress(5);
+
+
+                updateStatus(
+                    "Preparing audio..."
+                );
+
+
+                const transcript =
+                    await transcribeAudio(
+                        selectedFile
+                    );
+
+
+                updateProgress(80);
+
+
+                updateStatus(
+                    "Analyzing salesperson performance..."
+                );
+
+
+                const analysis =
+                    analyzeSalesperson(
+                        transcript
+                    );
+
+
+                updateProgress(100);
+
+
+                updateStatus(
+                    "Analysis completed."
+                );
+
+
+                displayResults(
+
+                    phone,
+
+                    selectedFile,
+
+                    transcript,
+
+                    analysis
+
+                );
+
+
+            }
+
+            catch(error) {
+
+
+                console.error(
+                    error
+                );
+
+
+                updateProgress(0);
+
+
+                updateStatus(
+                    "Analysis failed."
+                );
+
+
+                alert(
+
+                    "Unable to analyze the audio.\n\n"
+
+                    +
+
+                    "Please check that the file is a valid MP3 and try again.\n\n"
+
+                    +
+
+                    "Technical error:\n"
+
+                    +
+
+                    error.message
+
+                );
+
+            }
+
+
+            button.disabled =
+                false;
+
+        }
+
+    );
+
+
+
+/* =====================================================
+   PROGRESS FUNCTIONS
+===================================================== */
+
+
+function updateProgress(
+    value
+) {
+
+
+    document
+        .getElementById(
+            "progressFill"
+        )
+        .style.width =
+            value + "%";
+
+}
+
+
+
+function updateStatus(
+    message
+) {
+
+
+    document
+        .getElementById(
+            "status"
+        )
+        .textContent =
+            message;
+
+}
+
+
+
+/* =====================================================
+   COPY TRANSCRIPTION
+===================================================== */
+
+
+function copyTranscription() {
+
+
+    const text =
+        document
+            .getElementById(
+                "transcription"
+            )
+            .value;
+
+
+    navigator.clipboard
+        .writeText(text);
+
+
+    alert(
+        "Transcription copied."
+    );
+
+}
+
+
+
+/* =====================================================
+   COPY COMPLETE ANALYSIS
+===================================================== */
+
+
+function copyAnalysis() {
+
+
+    const phone =
+        document
+            .getElementById(
+                "resultPhone"
+            )
+            .textContent;
+
+
+    const rating =
+        document
+            .getElementById(
+                "qualityRating"
+            )
+            .textContent;
+
+
+    const convincing =
+        document
+            .getElementById(
+                "convincingScore"
+            )
+            .textContent;
+
+
+    const listening =
+        document
+            .getElementById(
+                "listeningScore"
+            )
+            .textContent;
+
+
+    const upselling =
+        document
+            .getElementById(
+                "upsellingScore"
+            )
+            .textContent;
+
+
+    const price =
+        document
+            .getElementById(
+                "priceScore"
+            )
+            .textContent;
+
+
+    const professionalism =
+        document
+            .getElementById(
+                "professionalismScore"
+            )
+            .textContent;
+
+
+    const closing =
+        document
+            .getElementById(
+                "closingScore"
+            )
+            .textContent;
+
+
+    const good =
+        document
+            .getElementById(
+                "wentGood"
+            )
+            .innerText;
+
+
+    const bad =
+        document
+            .getElementById(
+                "wentBad"
+            )
+            .innerText;
+
+
+    const indicators =
+        document
+            .getElementById(
+                "salesIndicators"
+            )
+            .innerText;
+
+
+    const transcript =
+        document
+            .getElementById(
+                "transcription"
+            )
+            .value;
+
+
+    const output =
+
+        "VISIT HEALTH - SALES CALL ANALYSIS\n\n"
+
+        +
+
+        "CLIENT PHONE: "
+        +
+        phone
+        +
+        "\n\n"
+
+        +
+
+        "OVERALL QUALITY: "
+        +
+        rating
+        +
+        "\n\n"
+
+        +
+
+        "METRICS\n"
+
+        +
+
+        "Convincing / Persuasion: "
+        +
+        convincing
+        +
+        "\n"
+
+        +
+
+        "Listening / Understanding: "
+        +
+        listening
+        +
+        "\n"
+
+        +
+
+        "Upselling: "
+        +
+        upselling
+        +
+        "\n"
+
+        +
+
+        "Price / Value Selling: "
+        +
+        price
+        +
+        "\n"
+
+        +
+
+        "Professionalism: "
+        +
+        professionalism
+        +
+        "\n"
+
+        +
+
+        "Closing Ability: "
+        +
+        closing
+        +
+        "\n\n"
+
+        +
+
+        "WHAT WENT GOOD\n"
+
+        +
+        good
+
+        +
+
+        "\n\n"
+
+        +
+
+        "WHAT WENT BAD\n"
+
+        +
+        bad
+
+        +
+
+        "\n\n"
+
+        +
+
+        "SALES INDICATORS\n"
+
+        +
+        indicators
+
+        +
+
+        "\n\n"
+
+        +
+
+        "FULL TRANSCRIPTION\n"
+
+        +
+        transcript;
+
+
+
+    navigator.clipboard
+        .writeText(output);
+
+
+    alert(
+        "Complete analysis copied."
+    );
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>
